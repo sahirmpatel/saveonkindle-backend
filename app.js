@@ -7,36 +7,41 @@ import { extract } from "article-parser";
 import { transporter } from "./mail.js";
 const app = express();
 
+// middleware to handle forms
+app.use(express.urlencoded({ extended: true }));
+// app.use(complete);
+
 app.get("/", async (req, res) => {
   //   const mediaUrl = req.params.url;
-  //   console.log("mediaUrl", mediaUrl);
-
-  const mediaUrl = req.query.save;
-  //   const response = axios
-  //     .get(mediaUrl)
-  //     .then((res) => console.log("res", res.data))
-  //     .then((res) => res);
-  //   console.log("mediaUrl", response);
-
-  //   const response = await axios.get(mediaUrl).then((res) => res.data);
-  //   console.log("response ", response);
-
-  //   await writeFile(new URL("./saved.html", import.meta.url), response);
 
   // using extraction
+  // const value = await expandUrlIfShortended(mediaUrl);
+
+  // parseAndSaveLink(value);
+  res.send(` <p>   Enter the link 🚢 </p> - 
+  <form action="/generate" method="post">
+  <input type="text" name="save" placeholder="article link" >
+  <button type="submit">Save</button>
+  </form>
+
+`);
+});
+
+app.post("/generate", async (req, res) => {
+  const mediaUrl = req.body.save;
+  console.log("mediaUrl", mediaUrl);
+
   const value = await expandUrlIfShortended(mediaUrl);
 
-  parseAndSaveLink(value);
-  res.send("Saved 📝🤝 ");
+  parseAndSaveLink(value, res);
 });
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`running on ${port}`));
 
-const parseAndSaveLink = async (url) => {
+const parseAndSaveLink = async (url, res) => {
   try {
     const data = await extract(url);
-    // console.log("data", data, "for url", url);
 
     const extractedData = {
       title: data?.title,
@@ -45,7 +50,6 @@ const parseAndSaveLink = async (url) => {
       url,
     };
 
-    // console.log("extracted", extractedData);
     let template = await readFile(
       new URL("./template.html", import.meta.url),
       "utf-8"
@@ -72,6 +76,9 @@ const parseAndSaveLink = async (url) => {
           path: `./saved_files/${data?.title || "index"}.html`,
         },
       ],
+      tls: {
+        rejectUnauthorized: false,
+      },
     };
 
     transporter.sendMail(mailOptions, function (error, info) {
@@ -79,6 +86,9 @@ const parseAndSaveLink = async (url) => {
         console.log(error);
       } else {
         console.log("Email sent: " + info.response);
+        res.send(`
+        Done ! Check your Kindle 📓 
+  `);
       }
     });
   } catch (e) {
